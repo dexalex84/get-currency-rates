@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="get-currency-web">
+    <target name = "deploy" description = "create distr folder" >
+        <property name = "distr" value = "distr"></property>
+        <property name = "phantomjs_path" value = "C:\app\PhantomJS\phantomjs.exe"></property>
+        <mkdir dir="${distr}"/>
+        <mkdir dir="${distr}/parser"/>
+        <delete>
+            <fileset dir="${distr}" includes="*"/>
+            <fileset dir="${distr}/parser" includes="*"/>
+        </delete>
+        <copy file="./target/get-currency-web-1.0.jar"  toDir="./${distr}"/>
+        <move file="${distr}/get-currency-web-1.0.jar" tofile="./${distr}/get-currency-web.jar"/>
+        <copy file="${phantomjs_path}" todir="${distr}/parser"/>
+    </target>
+</project>

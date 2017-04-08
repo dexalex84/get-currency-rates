@@ -1,0 +1,1 @@
+Get currencies from specific HTML page and store it to PostgreSQL DB with time interval
