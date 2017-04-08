@@ -2,7 +2,7 @@
 
 ## Get currencies from specific HTML page and store it to PostgreSQL DB with time interval
 
-This is simple console application made in learning purpose 
+This is simple console application made for educational purposes
 
 ## What it actually do?
 
