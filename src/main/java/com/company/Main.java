@@ -1,14 +1,15 @@
 package com.company;
 
 import com.google.common.base.Strings;
+import com.sun.jna.platform.FileUtils;
 import org.apache.commons.cli.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 
 import org.apache.commons.cli.ParseException;
 import org.jsoup.Jsoup;
-import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -49,26 +50,29 @@ public class Main {
     static CommandLineParser cmd_parser ;
     static HelpFormatter hf ;
     static CommandLine cmd;
+
     static java.sql.Connection connection;
 
     public static void main(String[] args) {
         String args_str="";
 
-        for (int i=0;i<args.length;i++)
-            args_str+=args[i]+" ";
+        // init cmd options
+        if ( parseCMD(args) == -1)
+            return;
+
+        if (cmd.hasOption("h"))
+        {
+            hf.printHelp("This app parses HTML from URL: " + CURR_URL+" and store cross currency rates into DB table",opts);
+            return;
+        }
 
         // init logger
         initLogger(args);
 
         MAIN_LOGGER.log(Level.CONFIG,"Program args: "+ (args_str.equals("")==true?"NO":args_str));
 
-        // init cmd options
-        opts = createOpts();
-
         // init connection
-        int error = checkAndCustomize(args);
-
-        if (error == 1)
+        if (checkAndCustomize() == -1)
         {
             MAIN_LOGGER.log(Level.SEVERE,"Error during checkAndCustomize. Exit");
             return;
@@ -209,24 +213,28 @@ public class Main {
         MAIN_LOGGER.log(Level.CONFIG,"App finished. Requests count: " + requestCount.toString());
     }
 
-    private static int checkAndCustomize(String[] args) {
-        // Init parser of command line
-        cmd_parser = new DefaultParser();
-        hf = new HelpFormatter();
+
+    private static int checkAndCustomize() {
 
         // set default path for phantomjs binary we need to parse html with java script updatable content
         String phantomjs_path="C:\\app\\PhantomJS\\phantomjs.exe";
 
+
+
+        if (cmd.hasOption("b"))
+            phantomjs_path = cmd.getOptionValue("b");
+
         try {
-            cmd = cmd_parser.parse(opts, args);
-        }catch (ParseException pe) {
-            MAIN_LOGGER.log(Level.SEVERE,"Can't parse arguments");
-            pe.printStackTrace();
+            File file = new File(phantomjs_path);
+            if (!file.exists()) {
+                MAIN_LOGGER.log(Level.SEVERE, "phantomjs_path:'" + phantomjs_path.toString() + "' does not exists!Exit");
+                return -1;
+            }
+        }catch (Exception ex){
+            MAIN_LOGGER.log(Level.SEVERE, "phantomjs_path:'" + phantomjs_path.toString() + "' does not exists!Exit");
+            ex.printStackTrace();
             return -1;
         }
-
-        if (cmd.hasOption("-b"))
-            phantomjs_path = cmd.getOptionValue("-b");
 
         // setting variable phantomjs.binary.path to path to phantomjs binnary (for windows phantomjs.exe)
         System.setProperty("phantomjs.binary.path", phantomjs_path); // path to bin file. NOTE: platform dependent
@@ -307,12 +315,12 @@ public class Main {
         return 0;
     }
 
-    private static Options createOpts (){
-        Options opts = new Options();
+    private static int parseCMD(String[] args){
+        opts = new Options();
 
         opts.addOption( new Option("b","binary-path", true,"path to phantomjs binary"));
         opts.addOption( new Option("H","db_host", true,"postgresql DB to store values"));
-        opts.addOption( new Option("h","help", true,"show help"));
+        opts.addOption( new Option("h","help", false,"show help"));
         opts.addOption( new Option("d","db_name", true,"postgresql DB name"));
         opts.addOption( new Option("U","db_user", true,"postgresql user"));
         opts.addOption( new Option("W","db_password", true,"postgresql password"));
@@ -321,8 +329,21 @@ public class Main {
         opts.addOption( new Option("u","uptime", true,"period of time program will work"));
         opts.addOption( new Option("lf","log-file", false,"log to file"));
         opts.addOption( new Option("lc","log-console", false,"log to console"));
-        return opts;
 
+        // Init parser of command line
+        cmd_parser = new DefaultParser();
+        hf = new HelpFormatter();
+
+        try {
+            cmd = cmd_parser.parse(opts, args);
+
+        }catch (ParseException pe) {
+            System.out.println("Can't parse arguments!! Exit");
+            pe.printStackTrace();
+            return -1;
+        }
+
+        return 0;
     }
 
     public static void printSQLException(SQLException ex) {
@@ -397,20 +418,15 @@ public class Main {
         // set logger level
         MAIN_LOGGER.setLevel(Level.FINE);
 
-        // here not using Options because they are not initialized yet
-        boolean found=false;
 
-        for (int i=0; i < args.length;i++) {
+        if ( cmd.hasOption("lf") )
+           MAIN_LOGGER.addHandler(fileHandler);
 
-            if ( args[i].equals("-lf"))
-            {MAIN_LOGGER.addHandler(fileHandler);found=true;}
-
-            if ( args[i].equals("-lc"))
-            {MAIN_LOGGER.addHandler(consoleHandler);found=true;}
-        }
+        if ( cmd.hasOption("lc") )
+           MAIN_LOGGER.addHandler(consoleHandler);
 
         // set handlers
-        if (!found);
+        if (!cmd.hasOption("lf")&&!cmd.hasOption("lc"));
             MAIN_LOGGER.addHandler(fileHandler);
 
     }
