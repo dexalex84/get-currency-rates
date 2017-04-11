@@ -43,7 +43,7 @@ public class Main {
             "\tid serial primary key,\n" +
             "\tdate timestamp default now(),\n" +
             "\tnames character varying(255),\n" +
-            "\tval float\n" +
+            "\tval numeric(15,7)\n" +
             ");";
 
     static Options opts;
@@ -190,10 +190,11 @@ public class Main {
                     MAIN_LOGGER.log(Level.INFO,"Putting web data to table...START");
                     for (Map.Entry<String, Float> j : result_set.entrySet()) {
                         PreparedStatement insert_data = connection.prepareStatement(INSERT_INTO_TABLE);
-                        insert_data.setTimestamp(1, sqlTimestamp);
-                        insert_data.setString(2, j.getKey());
-                        insert_data.setFloat(3, j.getValue());
+                        insert_data.setTimestamp(1, sqlTimestamp );
+                        insert_data.setString(2, j.getKey() );
+                        insert_data.setFloat(3, j.getValue() );
                         insert_data.execute();
+
                     }
                     MAIN_LOGGER.log(Level.INFO,"Putting web data to table...END");
                 } catch (SQLException ex) {
