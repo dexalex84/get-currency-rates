@@ -15,10 +15,13 @@ import org.jsoup.select.Elements;
 
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.*;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.phantomjs.PhantomJSDriver;
+import org.openqa.selenium.phantomjs.PhantomJSDriverService;
+import org.openqa.selenium.remote.DesiredCapabilities;
 
 public class Main {
     private static final java.util.logging.Logger MAIN_LOGGER = java.util.logging.Logger.getLogger( Main.class.getName() );
@@ -26,7 +29,7 @@ public class Main {
     static String CURR_URL = "https://www.dailyfx.com/forex-rates";
     static long DEFAULT_UPTIME_TIME_IN_MINUTES = 60;
     static Integer DEFAULT_REQUEST_INTERVAL_IN_SECONDS = 3;
-    static long DEFAULT_BAD_RETRIES = 10;
+    static long DEFAULT_BAD_RETRIES = 10000;
     static String INSERT_INTO_TABLE = "" +
             "insert into public.exchange_rates \n" +
             "(\n" +
@@ -52,7 +55,7 @@ public class Main {
     static CommandLine cmd;
 
     static java.sql.Connection connection;
-
+    static Integer DEBUG_TOTAL_INSERT_COUNT=0;
     public static void main(String[] args) {
         String args_str="";
 
@@ -78,7 +81,11 @@ public class Main {
             return;
         }
 
+        ///PhantomJSDriverService driverService = PhantomJSDriverService.createDefaultService();
+
         WebDriver ghostDriver = new PhantomJSDriver();
+
+
         int retryAttempt =1;
         Integer BAD_REQUEST_COUNT=0;
         Integer interval = DEFAULT_REQUEST_INTERVAL_IN_SECONDS;
@@ -100,7 +107,7 @@ public class Main {
 
         MAIN_LOGGER.log(Level.CONFIG,"Uptime : " + Long.toString(upTime)+" min");
 
-        Map<String,Float> result_set = new HashMap<String, Float>();
+        Map<String,Float> result_set = new HashMap<>();
 
         long startTime;
         long currTime;
@@ -109,10 +116,9 @@ public class Main {
         startTime = System.currentTimeMillis();
         currTime = startTime;
 
-
         while ( currTime - startTime <= upTime * 60 * 1000 )
         {
-
+            retryAttempt = 1;
             try {
                 MAIN_LOGGER.log(Level.INFO,"Wait time interval: "+interval.toString() + " sec.");
                 Thread.sleep(1000 * interval);
@@ -139,8 +145,12 @@ public class Main {
                 try {
                     MAIN_LOGGER.log(Level.INFO,"Get data from web..START. Attempt "+String.valueOf(retryAttempt));
                     result_set.clear();
-
+                    // clear cache
+                    //ghostDriver.manage().timeouts().implicitlyWait(1000, TimeUnit.MILLISECONDS);
+                    ghostDriver.manage().timeouts().setScriptTimeout(1500, TimeUnit.MILLISECONDS);
+                    ghostDriver.manage().deleteAllCookies();
                     ghostDriver.get(CURR_URL);
+
                     requestCount++;
                     org.jsoup.nodes.Document doc = Jsoup.parse(ghostDriver.getPageSource());
 
@@ -150,7 +160,6 @@ public class Main {
                             getElementsByTag("tbody").first();
 
                     Iterator<Element> i = curr_block.children().iterator();
-
 
                     while (i.hasNext()) {
                         Element tr_node = i.next();
@@ -162,11 +171,13 @@ public class Main {
                         String cross_curr_names = td_nodes.get(0).child(0).child(0).text();
                         Float cross_curr_rate = Float.parseFloat(td_nodes.get(2).child(0).text());
                         result_set.put(cross_curr_names, cross_curr_rate);
+
+                        /// DEBUG
+                        /// if (cross_curr_names.trim().equals("AUDNZD"))
+                        ///   System.out.println(" "+cross_curr_rate.toString());
                     }
 
                     retryAttempt = 100000; // exit
-
-
 
                 } catch (Exception ex) {
                     ex.printStackTrace();
@@ -194,8 +205,9 @@ public class Main {
                         insert_data.setString(2, j.getKey() );
                         insert_data.setFloat(3, j.getValue() );
                         insert_data.execute();
-
                     }
+                    DEBUG_TOTAL_INSERT_COUNT++;
+                    MAIN_LOGGER.log(Level.INFO,"DEBUG_TOTAL_INSERT_COUNT = "+DEBUG_TOTAL_INSERT_COUNT.toString());
                     MAIN_LOGGER.log(Level.INFO,"Putting web data to table...END");
                 } catch (SQLException ex) {
                     ex.printStackTrace();
@@ -210,7 +222,7 @@ public class Main {
             printSQLException(ex);
         }
 
-        ghostDriver.quit();
+
         MAIN_LOGGER.log(Level.CONFIG,"App finished. Requests count: " + requestCount.toString());
     }
 
