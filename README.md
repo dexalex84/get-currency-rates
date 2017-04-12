@@ -28,7 +28,7 @@ Using IntelIiJ
 
 ## How to use 
 1) show help
-'''
+```
 java -jar get-currency-web.jar -h
 usage: This app parses HTML from URL: https://www.dailyfx.com/forex-rates
             and store cross currency rates into DB table
@@ -43,13 +43,13 @@ usage: This app parses HTML from URL: https://www.dailyfx.com/forex-rates
  -U,--db_user <arg>       postgresql user
  -u,--uptime <arg>        period of time program will work
  -W,--db_password <arg>   postgresql password
- '''
+ ```
  
 run command like this (On Windows):
 
-java -jar get-currency-web.jar -H 192.168.1.1 -p 5442 -U postgres -W postgres -d system_a -t 3 -u 1 -lf -b phantomjs.exe
+```java -jar get-currency-web.jar -H 192.168.1.1 -p 5442 -U postgres -W postgres -d system_a -t 3 -u 1 -lf -b phantomjs.exe```
 this means
-
+```
 DB on             192.168.56.99 
 PORT              5442
 PASSWORD AND USER postgres
@@ -57,5 +57,5 @@ RETRY WEB REUQEST every 3 second
 UPTIME            1 minute
 USE ONLY FILE LOG 
 PARSER            phantomjs.exe
-
+```
 
